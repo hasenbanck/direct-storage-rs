@@ -8,32 +8,26 @@
 //
 use std::{mem::ManuallyDrop, os::windows::ffi::OsStrExt, path::Path, process::exit};
 
+use d3d12_agility::{
+    D3D_FEATURE_LEVEL_12_0, D3D_SHADER_MODEL_6_0, D3D12_FEATURE_DATA_SHADER_MODEL,
+    D3D12_FEATURE_SHADER_MODEL, D3D12_FENCE_FLAG_NONE, D3D12_HEAP_FLAG_NONE, D3D12_HEAP_PROPERTIES,
+    D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_DESC, D3D12_RESOURCE_DIMENSION_BUFFER,
+    D3D12_RESOURCE_STATE_COMMON, D3D12_TEXTURE_LAYOUT_ROW_MAJOR, D3D12CreateDevice,
+    DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC, HANDLE, ID3D12Device, ID3D12Fence, ID3D12Resource,
+};
 use direct_storage::{
-    readonly_copy, runtime_loaded::DStorageGetFactory, IDStorageFactory, IDStorageFile,
-    IDStorageQueue, DSTORAGE_COMPRESSION_FORMAT_NONE, DSTORAGE_DESTINATION,
+    BY_HANDLE_FILE_INFORMATION, DSTORAGE_COMPRESSION_FORMAT_NONE, DSTORAGE_DESTINATION,
     DSTORAGE_DESTINATION_BUFFER, DSTORAGE_MAX_QUEUE_CAPACITY, DSTORAGE_PRIORITY_NORMAL,
     DSTORAGE_QUEUE_DESC, DSTORAGE_REQUEST, DSTORAGE_REQUEST_DESTINATION_BUFFER,
     DSTORAGE_REQUEST_OPTIONS, DSTORAGE_REQUEST_SOURCE_FILE, DSTORAGE_SOURCE, DSTORAGE_SOURCE_FILE,
+    IDStorageFactory, IDStorageFile, IDStorageQueue, readonly_copy,
+    runtime_loaded::DStorageGetFactory,
 };
-use windows::{
-    core::{PCSTR, PCWSTR},
-    Win32::{
-        Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
-        Graphics::{
-            Direct3D::D3D_FEATURE_LEVEL_12_0,
-            Direct3D12::{
-                D3D12CreateDevice, ID3D12Device, ID3D12Fence, ID3D12Resource,
-                D3D12_FEATURE_DATA_SHADER_MODEL, D3D12_FEATURE_SHADER_MODEL, D3D12_FENCE_FLAG_NONE,
-                D3D12_HEAP_FLAG_NONE, D3D12_HEAP_PROPERTIES, D3D12_HEAP_TYPE_DEFAULT,
-                D3D12_RESOURCE_DESC, D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_STATE_COMMON,
-                D3D12_TEXTURE_LAYOUT_ROW_MAJOR, D3D_SHADER_MODEL_6_0,
-            },
-            Dxgi::Common::{DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC},
-        },
-        Storage::FileSystem::BY_HANDLE_FILE_INFORMATION,
-        System::Threading::{CreateEventA, WaitForSingleObject},
-    },
-};
+use windows_core::{BOOL, PCSTR, PCWSTR};
+
+windows_core::link!("kernel32.dll" "system" fn CreateEventA(lpeventattributes : *const core::ffi::c_void, bmanualreset : BOOL, binitialstate : BOOL, lpname : PCSTR) -> HANDLE);
+windows_core::link!("kernel32.dll" "system" fn WaitForSingleObject(hhandle : HANDLE, dwmilliseconds : u32) -> u32);
+windows_core::link!("kernel32.dll" "system" fn CloseHandle(hobject : HANDLE) -> BOOL);
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -50,7 +44,12 @@ fn main() {
 
     let mut device = None::<ID3D12Device>;
     unsafe {
-        D3D12CreateDevice(None, D3D_FEATURE_LEVEL_12_0, &mut device).expect("Can't get DX12 device")
+        D3D12CreateDevice(
+            None::<&windows_core::IUnknown>,
+            D3D_FEATURE_LEVEL_12_0,
+            &mut device,
+        )
+        .expect("Can't get DX12 device")
     };
     let device = device.expect("Device is None");
 
@@ -64,9 +63,10 @@ fn main() {
                 &mut info as *mut _ as *mut _,
                 std::mem::size_of::<D3D12_FEATURE_DATA_SHADER_MODEL>() as u32,
             )
+            .ok()
             .expect("Can't query shader model")
     };
-    if info.HighestShaderModel.0 < D3D_SHADER_MODEL_6_0.0 {
+    if info.HighestShaderModel < D3D_SHADER_MODEL_6_0 {
         println!("At least shader model 6.0 is needed to support DirectStorage.");
         exit(-1);
     }
@@ -83,6 +83,7 @@ fn main() {
     let mut info = BY_HANDLE_FILE_INFORMATION::default();
     unsafe {
         file.GetFileInformation(&mut info)
+            .ok()
             .expect("Can't get file information")
     };
     let file_size = info.nFileSizeLow;
@@ -92,7 +93,7 @@ fn main() {
         SourceType: DSTORAGE_REQUEST_SOURCE_FILE,
         Capacity: DSTORAGE_MAX_QUEUE_CAPACITY as u16,
         Priority: DSTORAGE_PRIORITY_NORMAL,
-        Name: PCSTR::null(),
+        Name: std::ptr::null(),
         Device: unsafe { readonly_copy(&device) },
     };
 
@@ -162,7 +163,7 @@ fn main() {
         },
         UncompressedSize: file_size,
         CancellationTag: 0,
-        Name: PCSTR::null(),
+        Name: std::ptr::null(),
     };
 
     println!("Enqueue Request to Queue.");
@@ -177,13 +178,15 @@ fn main() {
     };
 
     let fence_event =
-        unsafe { CreateEventA(None, false, false, None).expect("Can't create event") };
+        unsafe { CreateEventA(std::ptr::null(), false.into(), false.into(), PCSTR::null()) };
+    assert!(!fence_event.0.is_null(), "Can't create event");
 
     const FENCE_VALUE: u64 = 1;
 
     unsafe {
         fence
             .SetEventOnCompletion(FENCE_VALUE, fence_event)
+            .ok()
             .expect("Can't set on completion event");
 
         queue.EnqueueSignal(&fence, FENCE_VALUE);
@@ -195,12 +198,11 @@ fn main() {
     unsafe {
         let _success = WaitForSingleObject(fence_event, 5 * 1000);
 
-        if fence_event != INVALID_HANDLE_VALUE {
-            CloseHandle(fence_event).expect("Failed to close Event object");
-        }
+        CloseHandle(fence_event).expect("Failed to close Event object");
     };
 
-    let error_record = unsafe { queue.RetrieveErrorRecord() };
+    let mut error_record = Default::default();
+    unsafe { queue.RetrieveErrorRecord(&mut error_record) };
 
     if error_record.FailureCount > 0 {
         println!(

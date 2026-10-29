@@ -17,40 +17,32 @@ use std::{
     time::Duration,
 };
 
+use d3d12_agility::{
+    D3D_FEATURE_LEVEL_12_0, D3D_SHADER_MODEL_6_0, D3D12_FEATURE_DATA_SHADER_MODEL,
+    D3D12_FEATURE_SHADER_MODEL, D3D12_FENCE_FLAG_NONE, D3D12_HEAP_FLAG_NONE, D3D12_HEAP_PROPERTIES,
+    D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_DESC, D3D12_RESOURCE_DIMENSION_BUFFER,
+    D3D12_RESOURCE_STATE_COMMON, D3D12_TEXTURE_LAYOUT_ROW_MAJOR, D3D12CreateDevice,
+    DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC, HANDLE, ID3D12Device, ID3D12Fence, ID3D12Resource,
+};
 use direct_storage::{
-    readonly_copy,
-    runtime_loaded::{
-        DStorageCreateCompressionCodec, DStorageGetFactory, DStorageSetConfiguration,
-    },
-    IDStorageCompressionCodec, IDStorageFactory, IDStorageFile, IDStorageQueue,
     DSTORAGE_COMMAND_TYPE_REQUEST, DSTORAGE_COMPRESSION_BEST_RATIO, DSTORAGE_COMPRESSION_FORMAT,
     DSTORAGE_COMPRESSION_FORMAT_GDEFLATE, DSTORAGE_COMPRESSION_FORMAT_NONE, DSTORAGE_CONFIGURATION,
     DSTORAGE_DEBUG_BREAK_ON_ERROR, DSTORAGE_DEBUG_SHOW_ERRORS, DSTORAGE_DESTINATION,
     DSTORAGE_DESTINATION_BUFFER, DSTORAGE_MAX_QUEUE_CAPACITY, DSTORAGE_PRIORITY_NORMAL,
     DSTORAGE_QUEUE_DESC, DSTORAGE_REQUEST, DSTORAGE_REQUEST_DESTINATION_BUFFER,
     DSTORAGE_REQUEST_OPTIONS, DSTORAGE_REQUEST_SOURCE_FILE, DSTORAGE_SOURCE, DSTORAGE_SOURCE_FILE,
-};
-use windows::{
-    core::{PCSTR, PCWSTR},
-    Win32::{
-        Foundation::CloseHandle,
-        Graphics::{
-            Direct3D::D3D_FEATURE_LEVEL_12_0,
-            Direct3D12::{
-                D3D12CreateDevice, ID3D12Device, ID3D12Fence, ID3D12Resource,
-                D3D12_FEATURE_DATA_SHADER_MODEL, D3D12_FEATURE_SHADER_MODEL, D3D12_FENCE_FLAG_NONE,
-                D3D12_HEAP_FLAG_NONE, D3D12_HEAP_PROPERTIES, D3D12_HEAP_TYPE_DEFAULT,
-                D3D12_RESOURCE_DESC, D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_STATE_COMMON,
-                D3D12_TEXTURE_LAYOUT_ROW_MAJOR, D3D_SHADER_MODEL_6_0,
-            },
-            Dxgi::Common::{DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC},
-        },
-        System::{
-            Threading::{CreateEventA, GetCurrentProcess, WaitForSingleObject},
-            WindowsProgramming::QueryProcessCycleTime,
-        },
+    IDStorageCompressionCodec, IDStorageFactory, IDStorageFile, IDStorageQueue, readonly_copy,
+    runtime_loaded::{
+        DStorageCreateCompressionCodec, DStorageGetFactory, DStorageSetConfiguration,
     },
 };
+use windows_core::{BOOL, PCSTR, PCWSTR};
+
+windows_core::link!("kernel32.dll" "system" fn CreateEventA(lpeventattributes : *const core::ffi::c_void, bmanualreset : BOOL, binitialstate : BOOL, lpname : PCSTR) -> HANDLE);
+windows_core::link!("kernel32.dll" "system" fn WaitForSingleObject(hhandle : HANDLE, dwmilliseconds : u32) -> u32);
+windows_core::link!("kernel32.dll" "system" fn CloseHandle(hobject : HANDLE) -> BOOL);
+windows_core::link!("kernel32.dll" "system" fn GetCurrentProcess() -> HANDLE);
+windows_core::link!("kernel32.dll" "system" fn QueryProcessCycleTime(processhandle : HANDLE, cycletime : *mut u64) -> BOOL);
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum TestCase {
@@ -119,7 +111,7 @@ pub fn main() {
             .expect("Second argument not a valid 32 bit unsigned integer");
         if chunk_size_mib == 0 {
             show_help_text();
-            println!("\nInvalid chunk size: {}", &args[2]);
+            println!("\nInvalid chunk size: {}", args[2]);
             exit(-1);
         }
     }
@@ -336,6 +328,7 @@ fn compressed(
                     bound,
                     &mut compressed_size,
                 )
+                .ok()
                 .expect("Can't compress buffer");
             chunk.set_len(compressed_size);
         }
@@ -414,11 +407,17 @@ fn run_test(
     // The staging buffer size must be set before any queues are created.
     print!("Staging buffer: {staging_buffer_size_mib} MiB");
     unsafe { factory.SetStagingBufferSize(staging_buffer_size_mib * 1024 * 1024) }
+        .ok()
         .expect("Can't set staging buffer size");
 
     let mut device = None::<ID3D12Device>;
     unsafe {
-        D3D12CreateDevice(None, D3D_FEATURE_LEVEL_12_0, &mut device).expect("Can't get DX12 device")
+        D3D12CreateDevice(
+            None::<&windows_core::IUnknown>,
+            D3D_FEATURE_LEVEL_12_0,
+            &mut device,
+        )
+        .expect("Can't get DX12 device")
     };
     let device = device.expect("Device is None");
 
@@ -432,9 +431,10 @@ fn run_test(
                 <*mut _>::cast(&mut info),
                 std::mem::size_of_val(&info) as u32,
             )
+            .ok()
             .expect("Can't query shader model")
     };
-    if info.HighestShaderModel.0 < D3D_SHADER_MODEL_6_0.0 {
+    if info.HighestShaderModel < D3D_SHADER_MODEL_6_0 {
         println!("\nAt least shader model 6.0 is needed to support DirectStorage.");
         exit(-1);
     }
@@ -444,7 +444,7 @@ fn run_test(
         SourceType: DSTORAGE_REQUEST_SOURCE_FILE,
         Capacity: DSTORAGE_MAX_QUEUE_CAPACITY as u16,
         Priority: DSTORAGE_PRIORITY_NORMAL,
-        Name: PCSTR::null(),
+        Name: std::ptr::null(),
         Device: unsafe { readonly_copy(&device) },
     };
 
@@ -493,19 +493,19 @@ fn run_test(
     };
 
     let fence_event =
-        unsafe { CreateEventA(None, false, false, None).expect("Can't create event") };
+        unsafe { CreateEventA(std::ptr::null(), false.into(), false.into(), PCSTR::null()) };
+    assert!(!fence_event.0.is_null(), "Can't create event");
 
     let mut mean_bandwidth: f64 = 0.0;
     let mut mean_cycle_time: u64 = 0;
 
-    let mut fence_value = 1;
-
-    for _ in 0..num_runs {
+    for fence_value in 1..=(num_runs as u64) {
         let mut dst_offset = 0;
 
         unsafe {
             fence
                 .SetEventOnCompletion(fence_value, fence_event)
+                .ok()
                 .expect("Can't set completion event")
         };
 
@@ -542,7 +542,7 @@ fn run_test(
                 },
                 UncompressedSize: chunk.uncompressed_size,
                 CancellationTag: 0,
-                Name: PCSTR::null(),
+                Name: std::ptr::null(),
             };
 
             unsafe { queue.EnqueueRequest(&request) };
@@ -570,7 +570,8 @@ fn run_test(
             sleep(Duration::from_secs(5));
         }
 
-        let error_record = unsafe { queue.RetrieveErrorRecord() };
+        let mut error_record = Default::default();
+        unsafe { queue.RetrieveErrorRecord(&mut error_record) };
 
         if error_record.FirstFailure.HResult.is_err() {
             println!(
@@ -593,8 +594,6 @@ fn run_test(
 
         mean_bandwidth += bandwidth;
         mean_cycle_time += end_cycle_time - start_cycle_time;
-
-        fence_value += 1;
     }
 
     unsafe {

@@ -5,7 +5,8 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.APACHE)
 
 This crates implements [windows-rs](https://github.com/microsoft/windows-rs)
-compatible bindings for the DirectStorage API.
+compatible bindings for the DirectStorage API, built on `windows-core` and
+sharing its D3D12 types with [`d3d12-agility`](https://github.com/Traverse-Research/d3d12-agility-rs).
 
 We try to provide the same abstraction level and coding style as windows-rs.
 

@@ -1,0 +1,305 @@
+#[win32]
+mod Windows {
+    mod Win32 {
+        #[repr(i32)]
+        enum DSTORAGE_COMMAND_TYPE {
+            DSTORAGE_COMMAND_TYPE_NONE = -1,
+            DSTORAGE_COMMAND_TYPE_REQUEST = 0,
+            DSTORAGE_COMMAND_TYPE_STATUS = 1,
+            DSTORAGE_COMMAND_TYPE_SIGNAL = 2,
+            DSTORAGE_COMMAND_TYPE_EVENT = 3,
+        }
+        #[repr(i32)]
+        enum DSTORAGE_COMPRESSION {
+            DSTORAGE_COMPRESSION_FASTEST = -1,
+            DSTORAGE_COMPRESSION_DEFAULT = 0,
+            DSTORAGE_COMPRESSION_BEST_RATIO = 1,
+        }
+        #[repr(u8)]
+        enum DSTORAGE_COMPRESSION_FORMAT {
+            DSTORAGE_COMPRESSION_FORMAT_NONE = 0,
+            DSTORAGE_COMPRESSION_FORMAT_GDEFLATE = 1,
+            DSTORAGE_CUSTOM_COMPRESSION_0 = 128,
+        }
+        #[repr(u32)]
+        #[flags]
+        enum DSTORAGE_COMPRESSION_SUPPORT {
+            DSTORAGE_COMPRESSION_SUPPORT_NONE = 0,
+            DSTORAGE_COMPRESSION_SUPPORT_GPU_OPTIMIZED = 1,
+            DSTORAGE_COMPRESSION_SUPPORT_GPU_FALLBACK = 2,
+            DSTORAGE_COMPRESSION_SUPPORT_CPU_FALLBACK = 4,
+            DSTORAGE_COMPRESSION_SUPPORT_USES_COMPUTE_QUEUE = 8,
+            DSTORAGE_COMPRESSION_SUPPORT_USES_COPY_QUEUE = 16,
+        }
+        struct DSTORAGE_CONFIGURATION {
+            NumSubmitThreads: u32,
+            NumBuiltInCpuDecompressionThreads: i32,
+            ForceMappingLayer: BOOL,
+            DisableBypassIO: BOOL,
+            DisableTelemetry: BOOL,
+            DisableGpuDecompressionMetacommand: BOOL,
+            DisableGpuDecompression: BOOL,
+        }
+        struct DSTORAGE_CONFIGURATION1 {
+            NumSubmitThreads: u32,
+            NumBuiltInCpuDecompressionThreads: i32,
+            ForceMappingLayer: BOOL,
+            DisableBypassIO: BOOL,
+            DisableTelemetry: BOOL,
+            DisableGpuDecompressionMetacommand: BOOL,
+            DisableGpuDecompression: BOOL,
+            ForceFileBuffering: BOOL,
+        }
+        #[repr(u32)]
+        #[flags]
+        enum DSTORAGE_CUSTOM_DECOMPRESSION_FLAGS {
+            DSTORAGE_CUSTOM_DECOMPRESSION_FLAG_NONE = 0,
+            DSTORAGE_CUSTOM_DECOMPRESSION_FLAG_DEST_IN_UPLOAD_HEAP = 1,
+        }
+        struct DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST {
+            Id: u64,
+            CompressionFormat: DSTORAGE_COMPRESSION_FORMAT,
+            Reserved: [u8; 3],
+            Flags: DSTORAGE_CUSTOM_DECOMPRESSION_FLAGS,
+            SrcSize: u64,
+            SrcBuffer: *const void,
+            DstSize: u64,
+            DstBuffer: *mut void,
+        }
+        struct DSTORAGE_CUSTOM_DECOMPRESSION_RESULT {
+            Id: u64,
+            Result: HRESULT,
+        }
+        #[repr(u32)]
+        #[flags]
+        enum DSTORAGE_DEBUG {
+            DSTORAGE_DEBUG_NONE = 0,
+            DSTORAGE_DEBUG_SHOW_ERRORS = 1,
+            DSTORAGE_DEBUG_BREAK_ON_ERROR = 2,
+            DSTORAGE_DEBUG_RECORD_OBJECT_NAMES = 4,
+        }
+        union DSTORAGE_DESTINATION {
+            Memory: DSTORAGE_DESTINATION_MEMORY,
+            Buffer: DSTORAGE_DESTINATION_BUFFER,
+            Texture: DSTORAGE_DESTINATION_TEXTURE_REGION,
+            MultipleSubresources: DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES,
+            Tiles: DSTORAGE_DESTINATION_TILES,
+            MultipleSubresourcesRange: DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES_RANGE,
+        }
+        struct DSTORAGE_DESTINATION_BUFFER {
+            Resource: ID3D12Resource,
+            Offset: u64,
+            Size: u32,
+        }
+        struct DSTORAGE_DESTINATION_MEMORY {
+            Buffer: *mut void,
+            Size: u32,
+        }
+        struct DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES {
+            Resource: ID3D12Resource,
+            FirstSubresource: u32,
+        }
+        struct DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES_RANGE {
+            Resource: ID3D12Resource,
+            FirstSubresource: u32,
+            NumSubresources: u32,
+        }
+        struct DSTORAGE_DESTINATION_TEXTURE_REGION {
+            Resource: ID3D12Resource,
+            SubresourceIndex: u32,
+            Region: D3D12_BOX,
+        }
+        struct DSTORAGE_DESTINATION_TILES {
+            Resource: ID3D12Resource,
+            TiledRegionStartCoordinate: D3D12_TILED_RESOURCE_COORDINATE,
+            TileRegionSize: D3D12_TILE_REGION_SIZE,
+        }
+        const DSTORAGE_DISABLE_BUILTIN_CPU_DECOMPRESSION: i32 = -1;
+        #[repr(u32)]
+        enum DSTORAGE_ENQUEUE_REQUEST_FLAGS {
+            DSTORAGE_ENQUEUE_REQUEST_FLAG_NONE = 0,
+            DSTORAGE_ENQUEUE_REQUEST_FLAG_FENCE_WAIT_BEFORE_GPU_WORK = 1,
+            DSTORAGE_ENQUEUE_REQUEST_FLAG_FENCE_WAIT_BEFORE_SOURCE_ACCESS = 2,
+        }
+        struct DSTORAGE_ERROR_FIRST_FAILURE {
+            HResult: HRESULT,
+            CommandType: DSTORAGE_COMMAND_TYPE,
+            Anonymous: union {
+                Request: DSTORAGE_ERROR_PARAMETERS_REQUEST,
+                Status: DSTORAGE_ERROR_PARAMETERS_STATUS,
+                Signal: DSTORAGE_ERROR_PARAMETERS_SIGNAL,
+                Event: DSTORAGE_ERROR_PARAMETERS_EVENT,
+            },
+        }
+        struct DSTORAGE_ERROR_PARAMETERS_EVENT {
+            Handle: HANDLE,
+        }
+        struct DSTORAGE_ERROR_PARAMETERS_REQUEST {
+            Filename: [u16; 260],
+            RequestName: [i8; 64],
+            Request: DSTORAGE_REQUEST,
+        }
+        struct DSTORAGE_ERROR_PARAMETERS_SIGNAL {
+            Fence: ID3D12Fence,
+            Value: u64,
+        }
+        struct DSTORAGE_ERROR_PARAMETERS_STATUS {
+            StatusArray: IDStorageStatusArray,
+            Index: u32,
+        }
+        struct DSTORAGE_ERROR_RECORD {
+            FailureCount: u32,
+            FirstFailure: DSTORAGE_ERROR_FIRST_FAILURE,
+        }
+        #[repr(u32)]
+        #[flags]
+        enum DSTORAGE_GET_REQUEST_FLAGS {
+            DSTORAGE_GET_REQUEST_FLAG_SELECT_CUSTOM = 1,
+            DSTORAGE_GET_REQUEST_FLAG_SELECT_BUILTIN = 2,
+            DSTORAGE_GET_REQUEST_FLAG_SELECT_ALL = 3,
+        }
+        const DSTORAGE_MAX_QUEUE_CAPACITY: i32 = 8192;
+        const DSTORAGE_MIN_QUEUE_CAPACITY: i32 = 128;
+        #[repr(i8)]
+        enum DSTORAGE_PRIORITY {
+            DSTORAGE_PRIORITY_LOW = -1,
+            DSTORAGE_PRIORITY_NORMAL = 0,
+            DSTORAGE_PRIORITY_HIGH = 1,
+            DSTORAGE_PRIORITY_REALTIME = 2,
+            DSTORAGE_PRIORITY_FIRST = -1,
+            DSTORAGE_PRIORITY_LAST = 2,
+            DSTORAGE_PRIORITY_COUNT = 4,
+        }
+        struct DSTORAGE_QUEUE_DESC {
+            SourceType: DSTORAGE_REQUEST_SOURCE_TYPE,
+            Capacity: u16,
+            Priority: DSTORAGE_PRIORITY,
+            Name: *const i8,
+            Device: ID3D12Device,
+        }
+        struct DSTORAGE_QUEUE_INFO {
+            Desc: DSTORAGE_QUEUE_DESC,
+            EmptySlotCount: u16,
+            RequestCountUntilAutoSubmit: u16,
+        }
+        struct DSTORAGE_REQUEST {
+            Options: DSTORAGE_REQUEST_OPTIONS,
+            Source: DSTORAGE_SOURCE,
+            Destination: DSTORAGE_DESTINATION,
+            UncompressedSize: u32,
+            CancellationTag: u64,
+            Name: *const i8,
+        }
+        #[repr(u64)]
+        enum DSTORAGE_REQUEST_DESTINATION_TYPE {
+            DSTORAGE_REQUEST_DESTINATION_MEMORY = 0,
+            DSTORAGE_REQUEST_DESTINATION_BUFFER = 1,
+            DSTORAGE_REQUEST_DESTINATION_TEXTURE_REGION = 2,
+            DSTORAGE_REQUEST_DESTINATION_MULTIPLE_SUBRESOURCES = 3,
+            DSTORAGE_REQUEST_DESTINATION_TILES = 4,
+            DSTORAGE_REQUEST_DESTINATION_MULTIPLE_SUBRESOURCES_RANGE = 5,
+        }
+        const DSTORAGE_REQUEST_MAX_NAME: i32 = 64;
+        struct DSTORAGE_REQUEST_OPTIONS {
+            _bitfield1: DSTORAGE_COMPRESSION_FORMAT {
+                CompressionFormat: 8,
+            },
+            Reserved1: [u8; 7],
+            _bitfield2: DSTORAGE_REQUEST_SOURCE_TYPE {
+                SourceType: 1,
+                DestinationType: 7,
+                Reserved: 48,
+            },
+        }
+        #[repr(u64)]
+        enum DSTORAGE_REQUEST_SOURCE_TYPE {
+            DSTORAGE_REQUEST_SOURCE_FILE = 0,
+            DSTORAGE_REQUEST_SOURCE_MEMORY = 1,
+        }
+        const DSTORAGE_SDK_VERSION: i32 = 300;
+        union DSTORAGE_SOURCE {
+            Memory: DSTORAGE_SOURCE_MEMORY,
+            File: DSTORAGE_SOURCE_FILE,
+        }
+        struct DSTORAGE_SOURCE_FILE {
+            Source: IDStorageFile,
+            Offset: u64,
+            Size: u32,
+        }
+        struct DSTORAGE_SOURCE_MEMORY {
+            Source: *const void,
+            Size: u32,
+        }
+        #[repr(u32)]
+        enum DSTORAGE_STAGING_BUFFER_SIZE {
+            DSTORAGE_STAGING_BUFFER_SIZE_0 = 0,
+            DSTORAGE_STAGING_BUFFER_SIZE_32MB = 33554432,
+        }
+        #[library("DSTORAGE.dll")]
+        extern "system" fn DStorageCreateCompressionCodec(format: DSTORAGE_COMPRESSION_FORMAT, numThreads: u32, riid: *const GUID, #[iid_is] ppv: *mut *mut void) -> HRESULT;
+        #[library("DSTORAGE.dll")]
+        extern "system" fn DStorageGetFactory(riid: *const GUID, #[iid_is] ppv: *mut *mut void) -> HRESULT;
+        #[library("DSTORAGE.dll")]
+        extern "system" fn DStorageSetConfiguration(configuration: *const DSTORAGE_CONFIGURATION) -> HRESULT;
+        #[library("DSTORAGE.dll")]
+        extern "system" fn DStorageSetConfiguration1(configuration: *const DSTORAGE_CONFIGURATION1) -> HRESULT;
+        #[guid(0x84ef5121_9b43_4d03_b5c1_cc34606b262d)]
+        interface IDStorageCompressionCodec: IUnknown {
+            fn CompressBuffer(&self, uncompressedData: *const void, uncompressedDataSize: usize, compressionSetting: DSTORAGE_COMPRESSION, compressedBuffer: *mut void, compressedBufferSize: usize, compressedDataSize: *mut usize) -> HRESULT;
+            fn DecompressBuffer(&self, compressedData: *const void, compressedDataSize: usize, uncompressedBuffer: *mut void, uncompressedBufferSize: usize, uncompressedDataSize: *mut usize) -> HRESULT;
+            fn CompressBufferBound(&self, uncompressedDataSize: usize) -> usize;
+        }
+        #[guid(0x97179b2f_2c21_49ca_8291_4e1bf4a160df)]
+        interface IDStorageCustomDecompressionQueue: IUnknown {
+            fn GetEvent(&self,) -> HANDLE;
+            fn GetRequests(&self, maxRequests: u32, #[len_param(0)] requests: *mut DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST, numRequests: *mut u32) -> HRESULT;
+            fn SetRequestResults(&self, numResults: u32, #[len_param(0)] results: *const DSTORAGE_CUSTOM_DECOMPRESSION_RESULT) -> HRESULT;
+        }
+        #[guid(0x0d47c6c9_e61a_4706_93b4_68bfe3f4aa4a)]
+        interface IDStorageCustomDecompressionQueue1: IDStorageCustomDecompressionQueue {
+            fn GetRequests1(&self, flags: DSTORAGE_GET_REQUEST_FLAGS, maxRequests: u32, #[len_param(1)] requests: *mut DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST, numRequests: *mut u32) -> HRESULT;
+        }
+        #[guid(0x6924ea0c_c3cd_4826_b10a_f64f4ed927c1)]
+        interface IDStorageFactory: IUnknown {
+            fn CreateQueue(&self, desc: *const DSTORAGE_QUEUE_DESC, riid: *const GUID, #[iid_is] ppv: *mut *mut void) -> HRESULT;
+            fn OpenFile(&self, path: PCWSTR, riid: *const GUID, #[iid_is] ppv: *mut *mut void) -> HRESULT;
+            fn CreateStatusArray(&self, capacity: u32, #[opt] name: PCSTR, riid: *const GUID, #[iid_is] ppv: *mut *mut void) -> HRESULT;
+            fn SetDebugFlags(&self, flags: u32);
+            fn SetStagingBufferSize(&self, size: u32) -> HRESULT;
+        }
+        #[guid(0x5de95e7b_955a_4868_a73c_243b29f4b8da)]
+        interface IDStorageFile: IUnknown {
+            fn Close(&self,);
+            fn GetFileInformation(&self, info: *mut BY_HANDLE_FILE_INFORMATION) -> HRESULT;
+        }
+        #[guid(0xcfdbd83f_9e06_4fda_8ea5_69042137f49b)]
+        interface IDStorageQueue: IUnknown {
+            fn EnqueueRequest(&self, request: *const DSTORAGE_REQUEST);
+            fn EnqueueStatus(&self, statusArray: IDStorageStatusArray, index: u32);
+            fn EnqueueSignal(&self, fence: ID3D12Fence, value: u64);
+            fn Submit(&self,);
+            fn CancelRequestsWithTag(&self, mask: u64, value: u64);
+            fn Close(&self,);
+            fn GetErrorEvent(&self,) -> HANDLE;
+            fn RetrieveErrorRecord(&self, record: *mut DSTORAGE_ERROR_RECORD);
+            fn Query(&self, info: *mut DSTORAGE_QUEUE_INFO);
+        }
+        #[guid(0xdd2f482c_5eff_41e8_9c9e_d2374b278128)]
+        interface IDStorageQueue1: IDStorageQueue {
+            fn EnqueueSetEvent(&self, handle: HANDLE);
+        }
+        #[guid(0xb1c9d643_3a49_44a2_b46f_653649470d18)]
+        interface IDStorageQueue2: IDStorageQueue1 {
+            fn GetCompressionSupport(&self, format: DSTORAGE_COMPRESSION_FORMAT) -> DSTORAGE_COMPRESSION_SUPPORT;
+        }
+        #[guid(0xdeb54c52_eca8_46b3_82a7_031b72262653)]
+        interface IDStorageQueue3: IDStorageQueue2 {
+            fn EnqueueRequests(&self, #[len_param(1)] requests: *const DSTORAGE_REQUEST, numRequests: u32, #[opt] fence: ID3D12Fence, value: u64, flag: DSTORAGE_ENQUEUE_REQUEST_FLAGS);
+        }
+        #[guid(0x82397587_7cd5_453b_a02e_31379bd64656)]
+        interface IDStorageStatusArray: IUnknown {
+            fn IsComplete(&self, index: u32) -> bool;
+            fn GetHResult(&self, index: u32) -> HRESULT;
+        }
+    }
+}

@@ -7,7 +7,7 @@ authors = [
 ]
 license = "Apache-2.0 OR MIT"
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.95"
 repository = "https://github.com/Tsukisoft/direct-storage-rs"
 description = "Rust bindings for DirectStorage"
 categories = ["external-ffi-bindings", "api-bindings", "graphics", "hardware-support", "os::windows-apis"]
@@ -27,12 +27,8 @@ all-features = true
 
 [dependencies]
 libloading = { version = "0.8", optional = true }
-windows = { version = ">=0.61, <=0.62", features = ["Win32_Foundation", "Win32_Graphics_Direct3D12", "Win32_Storage_FileSystem"], default-features = false }
-windows-core = ">=0.61, <=0.62"
-windows-link = ">=0.1, <=0.2"
-
-[dev-dependencies]
-windows = { version = ">=0.61, <=0.62", features = ["Win32_Foundation", "Win32_Graphics_Direct3D12", "Win32_Graphics_Direct3D", "Win32_Graphics_Dxgi_Common", "Win32_System_WindowsProgramming", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Threading"], default-features = false }
+d3d12-agility = { git = "https://github.com/Traverse-Research/d3d12-agility-rs", rev = "873651e" }
+windows-core = { version = "0.100", default-features = false }
 
 [workspace]
 members = [

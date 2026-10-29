@@ -12,14 +12,14 @@
 #![allow(non_camel_case_types)]
 #![warn(unused_qualifications)]
 
-use std::mem::{transmute_copy, ManuallyDrop};
+use std::mem::{ManuallyDrop, transmute_copy};
 
 use windows_core::Interface;
 
 mod bindings;
 #[cfg(feature = "loaded")]
 pub mod runtime_loaded;
-pub use bindings::Microsoft::Direct3D::DirectStorage::*;
+pub use bindings::*;
 
 /// Create a temporary "owned" copy inside a [`ManuallyDrop`] without increasing the refcount or
 /// moving away the source variable.
@@ -62,33 +62,33 @@ pub unsafe fn readonly_copy<Src: Interface, Dst>(src: &Src) -> ManuallyDrop<Opti
 /// ```
 impl DSTORAGE_REQUEST_OPTIONS {
     pub fn CompressionFormat(&self) -> DSTORAGE_COMPRESSION_FORMAT {
-        DSTORAGE_COMPRESSION_FORMAT(self._bitfield1)
+        self._bitfield1
     }
 
     pub fn set_CompressionFormat(&mut self, value: DSTORAGE_COMPRESSION_FORMAT) {
-        self._bitfield1 = value.0;
+        self._bitfield1 = value;
     }
 
     pub fn SourceType(&self) -> DSTORAGE_REQUEST_SOURCE_TYPE {
         let size = u64::BITS;
-        DSTORAGE_REQUEST_SOURCE_TYPE(self._bitfield2 << (size - 1) >> (size - 1))
+        self._bitfield2 << (size - 1) >> (size - 1)
     }
 
     pub fn set_SourceType(&mut self, value: DSTORAGE_REQUEST_SOURCE_TYPE) {
         let mask = ((1 << 1) - 1) << 0;
         self._bitfield2 &= !mask;
-        self._bitfield2 |= value.0 & mask;
+        self._bitfield2 |= value & mask;
     }
 
     pub fn DestinationType(&self) -> DSTORAGE_REQUEST_DESTINATION_TYPE {
         let size = u64::BITS;
-        DSTORAGE_REQUEST_DESTINATION_TYPE(self._bitfield2 << (size - 8) >> (size - 8 + 1))
+        self._bitfield2 << (size - 8) >> (size - 8 + 1)
     }
 
     pub fn set_DestinationType(&mut self, value: DSTORAGE_REQUEST_DESTINATION_TYPE) {
         let mask = ((1 << (8 - 1)) - 1) << 1;
         self._bitfield2 &= !mask;
-        self._bitfield2 |= (value.0 << 1) & mask;
+        self._bitfield2 |= (value << 1) & mask;
     }
 }
 

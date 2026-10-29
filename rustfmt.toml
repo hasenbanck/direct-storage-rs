@@ -4,3 +4,4 @@ hex_literal_case = "Upper"
 imports_granularity = "Crate"
 group_imports = "StdExternalCrate"
 use_try_shorthand = true
+style_edition = "2024"

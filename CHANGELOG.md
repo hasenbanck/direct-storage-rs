@@ -1,5 +1,17 @@
 # Change Log
 
+## Unreleased
+
+- Targets [windows-rs `0.100`](https://github.com/microsoft/windows-rs/releases/tag/74), depending only on `windows-core` instead of `windows`
+- D3D12 types (`ID3D12Device`, `ID3D12Resource`, `ID3D12Fence`, `D3D12_BOX`, ...) and `HANDLE` now come from [`d3d12-agility`](https://github.com/Traverse-Research/d3d12-agility-rs) instead of `windows::Win32`
+- Bindings are generated straight from the DirectStorage headers with `windows-clang`, replacing the `win32metadata`-based `.winmd` pipeline.  This changes the API:
+  - All items live at the crate root instead of `Microsoft::Direct3D::DirectStorage`
+  - Enums and flags are plain integer aliases with constants instead of newtypes
+  - Methods returning a bare `HRESULT` (`GetFileInformation()`, `SetStagingBufferSize()`, `CompressBuffer()`, ...) no longer return `Result`; call `.ok()`
+  - `RetrieveErrorRecord()` and `Query()` take an out-pointer instead of returning the value
+  - `Name` fields are `*const i8` instead of `PCSTR`
+- Increased MSRV of Rust to 1.95
+
 ## v0.7.1 (2025-09-09)
 
 - Targets [windows-rs `0.61` - `0.62`](https://github.com/microsoft/windows-rs/releases/tag/69)

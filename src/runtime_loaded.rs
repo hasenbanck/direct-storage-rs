@@ -4,7 +4,7 @@
 use std::{ffi::c_void, sync::OnceLock};
 
 use libloading::Library;
-use windows_core::{Interface, Result, Type, GUID, HRESULT};
+use windows_core::{GUID, HRESULT, Interface, Result};
 
 use crate::{DSTORAGE_COMPRESSION_FORMAT, DSTORAGE_CONFIGURATION};
 
@@ -35,7 +35,7 @@ pub unsafe fn DStorageCreateCompressionCodec<T: Interface>(
         .expect("Can't load function`DStorageCreateCompressionCodec`");
 
     let mut result__ = ::std::ptr::null_mut();
-    f(format, numThreads, &T::IID, &mut result__).and_then(|| Type::from_abi(result__))
+    f(format, numThreads, &T::IID, &mut result__).map(|| T::from_raw(result__))
 }
 
 /// Runtime-loaded variant of [`crate::DStorageSetConfiguration()`] from `dstorage.dll`
@@ -68,7 +68,7 @@ pub unsafe fn DStorageGetFactory<T: Interface>() -> Result<T> {
         .expect("Can't load function`DStorageGetFactory`");
 
     let mut result__ = ::std::ptr::null_mut();
-    f(&T::IID, &mut result__).and_then(|| Type::from_abi(result__))
+    f(&T::IID, &mut result__).map(|| T::from_raw(result__))
 }
 
 unsafe fn load_libraries() -> Libraries {

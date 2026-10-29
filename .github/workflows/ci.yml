@@ -3,7 +3,7 @@ on:
   pull_request:
 
 env:
-  DIRECTSTORAGE_VERSION: 1.2.2
+  DIRECTSTORAGE_VERSION: 1.3.0
 
 jobs:
   rust:
@@ -39,52 +39,26 @@ jobs:
       - name: Install Rust at MSRV
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.74
+          toolchain: 1.95
           components: clippy
 
       - name: Cargo clippy with minimal-versions
         run: cargo clippy --workspace --all-targets --exclude api_gen -- -D warnings
 
-  generate-winmd:
-    name: Generate winmd
-    runs-on: windows-2022
+  generate:
+    name: Generate bindings
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Clean
-        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue .windows/winmd/
-      - name: Configure environment
-        shell: pwsh
-        run: |
-          "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64" >> $env:GITHUB_PATH
-          ((Resolve-Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\*\bin\Hostx64\x64")
-            | Sort-Object -Descending | Select -First 1).ToString() >> $env:GITHUB_PATH
-      - name: Generate
-        run: dotnet build .metadata
-      - name: Upload
-        uses: actions/upload-artifact@v7
-        with:
-          name: metadata
-          path: .windows/winmd
-
-  generate-rust:
-    name: Generate Rust crate
-    runs-on: ubuntu-latest
-    needs: generate-winmd
-    steps:
-      - uses: actions/checkout@v7
-      - name: Clean
-        run: rm -rf .windows/winmd/ src/Microsoft_Direct3D_DirectStorage.rs
-      - name: Download winmd
-        uses: actions/download-artifact@v8
-        with:
-          name: metadata
-          path: .windows/winmd
       - name: Generate
         run: cargo r -p api_gen
       - name: Upload crate source
         uses: actions/upload-artifact@v7
         with:
           name: crate-source
-          path: src/
-      - name: Diff generated Rust code
-        run: test -z "$(git status --porcelain -- ':!.windows')" || (echo "::error::Generated files are different, please regenerate with cargo run -p api_gen!"; git status; false)
+          path: |
+            metadata/
+            src/
+      - name: Diff generated metadata and Rust code
+        shell: bash
+        run: test -z "$(git status --porcelain)" || (echo "::error::Generated files are different, please regenerate with cargo run -p api_gen!"; git status; false)

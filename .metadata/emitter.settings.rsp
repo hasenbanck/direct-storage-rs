@@ -1,4 +1,0 @@
---memberRemap
-IDStorageFactory::SetDebugFlags::flags=[AssociatedEnum("DSTORAGE_DEBUG")]
-IDStorageQueue::RetrieveErrorRecord::record=[RetVal]
-IDStorageQueue::Query::info=[RetVal]
