@@ -3,7 +3,7 @@ on:
   pull_request:
 
 env:
-  DIRECTSTORAGE_VERSION: 1.2.2
+  DIRECTSTORAGE_VERSION: 1.4.0-preview2-2606.904
 
 jobs:
   rust:

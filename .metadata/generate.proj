@@ -23,7 +23,7 @@
             <Namespace>Microsoft.Direct3D.DirectStorage</Namespace>
         </Partition>
 
-        <PackageReference Include="Microsoft.Direct3D.DirectStorage" Version="1.3.0" GeneratePathProperty="true">
+        <PackageReference Include="Microsoft.Direct3D.DirectStorage" Version="1.4.0-preview2-2606.904" GeneratePathProperty="true">
             <IncludeAssets>none</IncludeAssets>
         </PackageReference>
     </ItemGroup>

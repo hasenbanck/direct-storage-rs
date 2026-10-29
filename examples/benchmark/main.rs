@@ -119,7 +119,7 @@ pub fn main() {
             .expect("Second argument not a valid 32 bit unsigned integer");
         if chunk_size_mib == 0 {
             show_help_text();
-            println!("\nInvalid chunk size: {}", &args[2]);
+            println!("\nInvalid chunk size: {}", args[2]);
             exit(-1);
         }
     }
@@ -498,9 +498,7 @@ fn run_test(
     let mut mean_bandwidth: f64 = 0.0;
     let mut mean_cycle_time: u64 = 0;
 
-    let mut fence_value = 1;
-
-    for _ in 0..num_runs {
+    for fence_value in 1..=(num_runs as u64) {
         let mut dst_offset = 0;
 
         unsafe {
@@ -593,8 +591,6 @@ fn run_test(
 
         mean_bandwidth += bandwidth;
         mean_cycle_time += end_cycle_time - start_cycle_time;
-
-        fence_value += 1;
     }
 
     unsafe {

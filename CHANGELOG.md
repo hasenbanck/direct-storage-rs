@@ -1,5 +1,7 @@
 # Change Log
 
+- Targets [DirectStorage v1.4.0](https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/)
+
 ## v0.7.1 (2025-09-09)
 
 - Targets [windows-rs `0.61` - `0.62`](https://github.com/microsoft/windows-rs/releases/tag/69)

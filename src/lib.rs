@@ -69,26 +69,39 @@ impl DSTORAGE_REQUEST_OPTIONS {
         self._bitfield1 = value.0;
     }
 
+    pub fn GameAssetConditioningLibraryShuffleTransformType(
+        &self,
+    ) -> DSTORAGE_GACL_SHUFFLE_TRANSFORM_TYPE {
+        DSTORAGE_GACL_SHUFFLE_TRANSFORM_TYPE(self._bitfield2)
+    }
+
+    pub fn set_GameAssetConditioningLibraryShuffleTransformType(
+        &mut self,
+        value: DSTORAGE_GACL_SHUFFLE_TRANSFORM_TYPE,
+    ) {
+        self._bitfield2 = value.0;
+    }
+
     pub fn SourceType(&self) -> DSTORAGE_REQUEST_SOURCE_TYPE {
         let size = u64::BITS;
-        DSTORAGE_REQUEST_SOURCE_TYPE(self._bitfield2 << (size - 1) >> (size - 1))
+        DSTORAGE_REQUEST_SOURCE_TYPE(self._bitfield3 << (size - 1) >> (size - 1))
     }
 
     pub fn set_SourceType(&mut self, value: DSTORAGE_REQUEST_SOURCE_TYPE) {
         let mask = ((1 << 1) - 1) << 0;
-        self._bitfield2 &= !mask;
-        self._bitfield2 |= value.0 & mask;
+        self._bitfield3 &= !mask;
+        self._bitfield3 |= value.0 & mask;
     }
 
     pub fn DestinationType(&self) -> DSTORAGE_REQUEST_DESTINATION_TYPE {
         let size = u64::BITS;
-        DSTORAGE_REQUEST_DESTINATION_TYPE(self._bitfield2 << (size - 8) >> (size - 8 + 1))
+        DSTORAGE_REQUEST_DESTINATION_TYPE(self._bitfield3 << (size - 8) >> (size - 8 + 1))
     }
 
     pub fn set_DestinationType(&mut self, value: DSTORAGE_REQUEST_DESTINATION_TYPE) {
         let mask = ((1 << (8 - 1)) - 1) << 1;
-        self._bitfield2 &= !mask;
-        self._bitfield2 |= (value.0 << 1) & mask;
+        self._bitfield3 &= !mask;
+        self._bitfield3 |= (value.0 << 1) & mask;
     }
 }
 
